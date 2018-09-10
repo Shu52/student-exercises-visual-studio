@@ -50,16 +50,35 @@ namespace StudentExercises.Controllers
         }
 
         // GET api/values/5
-        [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        [HttpGet("{id}", Name = "GetExercise")]
+        public async Task<IActionResult> Get([FromRoute] int id)
         {
-            return "value";
+            using (IDbConnection conn = Connection)
+            {
+                string sql = $"SELECT * FROM Exercise WHERE Id = {id}";
+
+                var theSingleExercise = (await conn.QueryAsync<Exercise>(sql)).Single();
+                return Ok(theSingleExercise);
+            }
         }
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public async Task<IActionResult> Post([FromBody] Exercise exercise)
         {
+            string sql = $@"INSERT INTO Exercise
+            (Name, Language)
+            VALUES
+            ('{exercise.Name}', '{exercise.Language}');
+            select MAX(Id) from Exercise";
+
+            using (IDbConnection conn = Connection)
+            {
+                var newExerciseId = (await conn.QueryAsync<int>(sql)).Single();
+                exercise.Id = newExerciseId;
+                return CreatedAtRoute("GetExercise", new { id = newExerciseId }, exercise);
+            }
+
         }
 
         // PUT api/values/5
